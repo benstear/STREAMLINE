@@ -88,8 +88,11 @@ def main(argv):
                 for cv_train_path in glob.glob(full_path+"/CVDatasets/*_CV_*Train.csv"):
                     command_text = '/FeatureImportanceJob.py ' + cv_train_path+" "+experiment_path+" "+str(random_state)+" "+class_label+" "+instance_label+" " +str(options.instance_subset)+" mi "+str(options.n_jobs)+' '+str(options.use_TURF)+' '+str(options.TURF_pct)
                     job_counter += 1
+                    ###################################
                     if eval(options.run_parallel):
+                      
                         submitClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                    ####################################
                     else:
                         submitLocalJob(cv_train_path,experiment_path,random_state,class_label,instance_label,options.instance_subset,'mi',options.n_jobs,options.use_TURF,options.TURF_pct,jupyterRun)
 
@@ -152,11 +155,12 @@ def submitLocalJob(cv_train_path,experiment_path,random_state,class_label,instan
 
 def submitClusterJob(command_text,experiment_path,reserved_memory,maximum_memory,queue,jupyterRun):
     """ Runs FeatureImportanceJob.py on a single CV dataset applying one of the implemented feature importance algorithms. Runs in parallel on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
+    
     job_ref = str(time.time())
     job_name = experiment_path+'/jobs/P3_'+job_ref+'_run.sh'
     sh_file = open(job_name,'w')
     sh_file.write('#!/bin/bash\n')
-    sh_file.write('#BSUB -q '+queue+'\n')
+    sh_file.write('#BSUB -q '+queue+'\n')  
     sh_file.write('#BSUB -J '+job_ref+'\n')
     sh_file.write('#BSUB -R "rusage[mem='+str(reserved_memory)+'G]"'+'\n')
     sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
@@ -168,6 +172,46 @@ def submitClusterJob(command_text,experiment_path,reserved_memory,maximum_memory
     sh_file.close()
     os.system('bsub < ' + job_name)
     pass
+  
+  
+ def submitSlurmClusterJob(command_text,experiment_path,reserved_memory,maximum_memory,queue,jupyterRun):
+    """ Runs FeatureImportanceJob.py on a single CV dataset applying one of the implemented feature importance algorithms. Runs in parallel on a linux-based computing cluster that uses SLURM for job scheduling."""
+    
+    # LFS command reference:  https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=bsub-options
+    # SLURM command reference: https://hpc.nmsu.edu/discovery/slurm/slurm-commands/
+    
+    ######## Command Mappngs between slurm/lfs and other job scheduler architectures #############
+    # https://slurm.schedmd.com/rosetta.pdf
+    job_ref = str(time.time())
+    job_name = experiment_path+'/jobs/P3_'+job_ref+'_run.sh'
+    sh_file = open(job_name,'w')
+    sh_file.write('#!/bin/bash\n')
+    '''
+    sh_file.write('#BSUB -q '+queue+'\n')                                     # BSUB -q  Specifies name of queue 
+    sh_file.write('#BSUB -J '+job_ref+'\n')                                   # BSUB -J  Assigns the specified name to the job
+    sh_file.write('#BSUB -R "rusage[mem='+str(reserved_memory)+'G]"'+'\n')    # BSUB -R  A resource requirement string describes the resources a job needs.
+    sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')                  # BSUB -M  Sets a memory limit for all the processes that belong to the job.
+    sh_file.write('#BSUB -o ' + experiment_path+'/logs/P3_'+job_ref+'.o\n')   # BSUB -o  Appends the standard output of the job to the specified file path.
+    sh_file.write('#BSUB -e ' + experiment_path+'/logs/P3_'+job_ref+'.e\n')   # BSUB -e Appends the standard error output of the job to the specified file path.
+    '''
+    #sh_file.write('#SBATCH -p '+queue+'\n')             ## Specify queue name
+    sh_file.write('#SBATCH --job-name '+job_ref+'\n')    ## Name of the job
+    # --licenses=[license_spec]                          ## Equivalent to the -R flag in LFS
+    sh_file.write('#SBATCH --output=slurm_output.out\n') ## Output File
+    sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
+    sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
+    sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
+    sh_file.write('load module python\n')                ## Load the python interpreter
+    ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
+    
+    this_file_path = os.path.dirname(os.path.realpath(__file__))
+    #sh_file.write(+'\n')
+    sh_file.write('srun python3 ' + this_file_path + command_text+" "+jupyterRun+'\n')
+    sh_file.close()
+    os.system('sbatch < ' + job_name)
+    pass 
+  
+  
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
