@@ -90,8 +90,8 @@ def main(argv):
                     job_counter += 1
                     ###################################
                     if eval(options.run_parallel):
-                      
-                        submitClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                        submitSlurmClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                        #submitClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
                     ####################################
                     else:
                         submitLocalJob(cv_train_path,experiment_path,random_state,class_label,instance_label,options.instance_subset,'mi',options.n_jobs,options.use_TURF,options.TURF_pct,jupyterRun)
@@ -103,7 +103,8 @@ def main(argv):
                     command_text = '/FeatureImportanceJob.py ' + cv_train_path+" "+experiment_path+" "+str(random_state)+" "+class_label+" "+instance_label+" " +str(options.instance_subset)+" ms "+str(options.n_jobs)+' '+str(options.use_TURF)+' '+str(options.TURF_pct)
                     if eval(options.run_parallel):
                         job_counter += 1
-                        submitClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                        submitSlurmClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                        #submitClusterJob(command_text, experiment_path,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
                     else:
                         submitLocalJob(cv_train_path,experiment_path,random_state,class_label,instance_label,options.instance_subset,'ms',options.n_jobs,options.use_TURF,options.TURF_pct,jupyterRun)
 
@@ -174,7 +175,7 @@ def submitClusterJob(command_text,experiment_path,reserved_memory,maximum_memory
     pass
   
   
- def submitSlurmClusterJob(command_text,experiment_path,reserved_memory,maximum_memory,queue,jupyterRun):
+def submitSlurmClusterJob(command_text,experiment_path,reserved_memory,maximum_memory,queue,jupyterRun):
     """ Runs FeatureImportanceJob.py on a single CV dataset applying one of the implemented feature importance algorithms. Runs in parallel on a linux-based computing cluster that uses SLURM for job scheduling."""
     
     # LFS command reference:  https://www.ibm.com/docs/en/spectrum-lsf/10.1.0?topic=bsub-options
