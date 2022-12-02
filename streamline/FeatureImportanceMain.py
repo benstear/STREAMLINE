@@ -205,9 +205,9 @@ def submitSlurmClusterJob(command_text,experiment_path,reserved_memory,maximum_m
     sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P3_'+job_ref+'.o\n')         ## Send standard output to file path
     sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P3_'+job_ref+'.e\n')         ## Send standard error to file path
     
-    sh_file.write('load module python3\n')                ## Load the python interpreter
+    sh_file.write('module load python3\n')                ## Load the python interpreter
     ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
-    sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy')
+    sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
     
     this_file_path = os.path.dirname(os.path.realpath(__file__))
     #sh_file.write(+'\n')
