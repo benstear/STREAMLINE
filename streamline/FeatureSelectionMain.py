@@ -78,7 +78,8 @@ def main(argv):
             full_path = options.output_path + "/" + options.experiment_name + "/" + dataset_directory_path
             job_counter += 1
             if eval(options.run_parallel):
-                submitClusterJob(full_path,options.output_path+'/'+options.experiment_name,do_mutual_info,do_multisurf,options.max_features_to_keep,options.filter_poor_features,options.top_features,options.export_scores,class_label,instance_label,cv_partitions,options.overwrite_cv,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                #submitClusterJob(full_path,options.output_path+'/'+options.experiment_name,do_mutual_info,do_multisurf,options.max_features_to_keep,options.filter_poor_features,options.top_features,options.export_scores,class_label,instance_label,cv_partitions,options.overwrite_cv,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
+                submitSlurmClusterJob(full_path,options.output_path+'/'+options.experiment_name,do_mutual_info,do_multisurf,options.max_features_to_keep,options.filter_poor_features,options.top_features,options.export_scores,class_label,instance_label,cv_partitions,options.overwrite_cv,options.reserved_memory,options.maximum_memory,options.queue,jupyterRun)
             else:
                 submitLocalJob(full_path,do_mutual_info,do_multisurf,options.max_features_to_keep,options.filter_poor_features,options.top_features,options.export_scores,class_label,instance_label,cv_partitions,options.overwrite_cv,jupyterRun)
 
@@ -143,6 +144,46 @@ def submitClusterJob(full_path,experiment_path,do_mutual_info,do_multisurf,max_f
     sh_file.close()
     os.system('bsub < ' + job_name)
     pass
+  
+ 
+  
+def submitSlurmClusterJob(full_path,experiment_path,do_mutual_info,do_multisurf,max_features_to_keep,filter_poor_features,top_features,export_scores,class_label,instance_label,cv_partitions,overwrite_cv,reserved_memory,maximum_memory,queue,jupyterRun):
+    """ Runs FeatureSelectionJob.py once for each of the original target datasets (all CV datasets analyzed at once). Runs in parallel on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
+    job_ref = str(time.time())
+    job_name = experiment_path+'/jobs/P4_'+job_ref+'_run.sh'
+    sh_file = open(job_name,'w')
+    sh_file.write('#!/bin/bash\n')
+    '''
+    sh_file.write('#BSUB -q '+queue+'\n')
+    sh_file.write('#BSUB -J '+job_ref+'\n')
+    sh_file.write('#BSUB -R "rusage[mem='+str(reserved_memory)+'G]"'+'\n')
+    sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
+    sh_file.write('#BSUB -o ' + experiment_path+'/logs/P4_'+job_ref+'.o\n')
+    sh_file.write('#BSUB -e ' + experiment_path+'/logs/P4_'+job_ref+'.e\n')'''
 
+    
+    #sh_file.write('#SBATCH -p '+queue+'\n')             ## Specify queue name
+    sh_file.write('#SBATCH --job-name '+job_ref+'\n')    ## Name of the job
+    # --licenses=[license_spec]                          ## Equivalent to the -R flag in LFS
+    sh_file.write('#SBATCH --output=slurm_output.out\n') ## Output File
+    sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
+    sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
+    sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P3_'+job_ref+'.o\n')         ## Send standard output to file path
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P3_'+job_ref+'.e\n')         ## Send standard error to file path
+    
+    sh_file.write('module load python3\n')                ## Load the python interpreter
+    ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
+    sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    
+    this_file_path = os.path.dirname(os.path.realpath(__file__))
+    sh_file.write('srun python3 '+this_file_path+'/FeatureSelectionJob.py '+full_path+" "+do_mutual_info+" "+do_multisurf+" "+
+                  str(max_features_to_keep)+" "+filter_poor_features+" "+str(top_features)+" "+export_scores+" "+class_label+" "+instance_label+" "+str(cv_partitions)+" "+overwrite_cv+" "+jupyterRun+'\n')
+    
+    sh_file.close()
+    os.system('sbatch < ' + job_name)
+    pass
+
+  
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
