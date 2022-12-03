@@ -207,6 +207,7 @@ def submitSlurmClusterJob(command_text,experiment_path,reserved_memory,maximum_m
     
     sh_file.write('module load python3\n')                ## Load the python interpreter
     ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
+    sh_file.write('pip3 uninstall numpy\n')
     sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
     
     this_file_path = os.path.dirname(os.path.realpath(__file__))
