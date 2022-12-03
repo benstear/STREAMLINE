@@ -81,7 +81,8 @@ def main(argv):
                     unique_datanames.append(data_name)
                     job_counter += 1
                     if eval(options.run_parallel): #Run as job in parallel on linux computing cluster
-                        submitClusterJob(dataset_path,options.output_path +'/'+options.experiment_name,options.cv_partitions,options.partition_method,options.categorical_cutoff,options.export_feature_correlations,options.export_univariate_plots,options.class_label,options.instance_label,options.match_label,options.random_state,options.reserved_memory,options.maximum_memory,options.queue,options.ignore_features_path,options.categorical_feature_path,options.sig_cutoff,jupyterRun)
+                        submitSlurmClusterJob(dataset_path,options.output_path +'/'+options.experiment_name,options.cv_partitions,options.partition_method,options.categorical_cutoff,options.export_feature_correlations,options.export_univariate_plots,options.class_label,options.instance_label,options.match_label,options.random_state,options.reserved_memory,options.maximum_memory,options.queue,options.ignore_features_path,options.categorical_feature_path,options.sig_cutoff,jupyterRun)
+                        #submitClusterJob(dataset_path,options.output_path +'/'+options.experiment_name,options.cv_partitions,options.partition_method,options.categorical_cutoff,options.export_feature_correlations,options.export_univariate_plots,options.class_label,options.instance_label,options.match_label,options.random_state,options.reserved_memory,options.maximum_memory,options.queue,options.ignore_features_path,options.categorical_feature_path,options.sig_cutoff,jupyterRun)
                     else: #Run job locally, serially
                         submitLocalJob(dataset_path,options.output_path+'/'+options.experiment_name,options.cv_partitions,options.partition_method,options.categorical_cutoff,options.export_feature_correlations,options.export_univariate_plots,options.class_label,options.instance_label,options.match_label,options.random_state,options.ignore_features_path,options.categorical_feature_path,options.sig_cutoff,jupyterRun)
                     file_count += 1
@@ -180,6 +181,34 @@ def submitClusterJob(dataset_path,experiment_path,cv_partitions,partition_method
     sh_file.close()
     os.system('bsub < '+job_name)
     pass
+  
+  
+  
+  
+def submitSlurmClusterJob(dataset_path,experiment_path,cv_partitions,partition_method,categorical_cutoff,export_feature_correlations,export_univariate_plots,class_label,instance_label,match_label,random_state,reserved_memory,maximum_memory,queue,ignore_features_path,categorical_feature_path,sig_cutoff,jupyterRun):
+    """ Runs ExploratoryAnalysisJob.py on each dataset in dataset_path in parallel on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
+    job_ref = str(time.time())
+    job_name = experiment_path+'/jobs/P1_'+job_ref+'_run.sh'
+    sh_file = open(job_name,'w')
+    sh_file.write('#!/bin/bash\n')
+    #sh_file.write('#SBATCH -p '+queue+'\n')             ## Specify queue name
+    sh_file.write('#SBATCH --job-name '+job_ref+'\n')    ## Name of the job
+    sh_file.write('#SBATCH --output=slurm_output.out\n') ## Output File
+    sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
+    sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
+    sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P3_'+job_ref+'.o\n')         ## Send standard output to file path
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P3_'+job_ref+'.e\n')         ## Send standard error to file path
+    sh_file.write('module load python3\n')                ## Load the python interpreter
+    sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
 
+    this_file_path = os.path.dirname(os.path.realpath(__file__))
+    sh_file.write('srun python3 '+this_file_path+'/ExploratoryAnalysisJob.py '+dataset_path+" "+experiment_path+" "+str(cv_partitions)+" "+partition_method+" "+str(categorical_cutoff)+
+                  " "+export_feature_correlations+" "+export_univariate_plots+" "+class_label+" "+instance_label+" "+match_label+" "+str(random_state)+" "+str(ignore_features_path)+" "+str(categorical_feature_path)+" "+str(sig_cutoff)+" "+str(jupyterRun)+'\n')
+    sh_file.close()
+    os.system('sbatch < '+job_name)
+    pass
+
+  
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
