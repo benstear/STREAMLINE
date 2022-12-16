@@ -112,7 +112,8 @@ def main(argv):
                     unique_datanames.append(apply_name)
                     job_counter += 1
                     if eval(options.run_parallel):
-                        submitClusterJob(options.reserved_memory,options.maximum_memory,options.queue,experiment_path,datasetFilename,full_path,class_label,instance_label,categorical_cutoff,sig_cutoff,cv_partitions,scale_data,impute_data,primary_metric,options.dataset_for_rep,options.match_label,options.plot_ROC,options.plot_PRC,options.plot_metric_boxplots,options.export_feature_correlations,jupyterRun,multi_impute)
+                        #submitClusterJob(options.reserved_memory,options.maximum_memory,options.queue,experiment_path,datasetFilename,full_path,class_label,instance_label,categorical_cutoff,sig_cutoff,cv_partitions,scale_data,impute_data,primary_metric,options.dataset_for_rep,options.match_label,options.plot_ROC,options.plot_PRC,options.plot_metric_boxplots,options.export_feature_correlations,jupyterRun,multi_impute)
+                        submitSlurmClusterJob(options.reserved_memory,options.maximum_memory,options.queue,experiment_path,datasetFilename,full_path,class_label,instance_label,categorical_cutoff,sig_cutoff,cv_partitions,scale_data,impute_data,primary_metric,options.dataset_for_rep,options.match_label,options.plot_ROC,options.plot_PRC,options.plot_metric_boxplots,options.export_feature_correlations,jupyterRun,multi_impute)
                     else:
                         submitLocalJob(datasetFilename,full_path,class_label,instance_label,categorical_cutoff,sig_cutoff,cv_partitions,scale_data,impute_data,primary_metric,options.dataset_for_rep,options.match_label,options.plot_ROC,options.plot_PRC,options.plot_metric_boxplots,options.export_feature_correlations,jupyterRun,multi_impute)
                     file_count += 1
@@ -151,18 +152,24 @@ def submitClusterJob(reserved_memory,maximum_memory,queue,experiment_path,datase
     job_name = experiment_path+'/jobs/Apply_'+train_name+'_'+apply_name+'_'+job_ref+'_run.sh'
     sh_file = open(job_name,'w')
     sh_file.write('#!/bin/bash\n')
-    sh_file.write('#BSUB -q '+queue+'\n')
-    sh_file.write('#BSUB -J '+job_ref+'\n')
-    sh_file.write('#BSUB -R "rusage[mem='+str(reserved_memory)+'G]"'+'\n')
-    sh_file.write('#BSUB -M '+str(maximum_memory)+'GB'+'\n')
-    sh_file.write('#BSUB -o ' + experiment_path+'/logs/Apply_'+train_name+'_'+apply_name+'_'+job_ref+'.o\n')
-    sh_file.write('#BSUB -e ' + experiment_path+'/logs/Apply_'+train_name+'_'+apply_name+'_'+job_ref+'.e\n')
-
+    sh_file.write('#SBATCH --job-name '+job_ref+'\n')    ## Name of the job
+    sh_file.write('#SBATCH --output=slurm_output.out\n') ## Output File
+    sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
+    sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
+    sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/Apply_'+train_name+'_'+apply_name+'_'+job_ref+'.o\n')
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/Apply_'+train_name+'_'+apply_name+'_'+job_ref+'.e\n')
+    sh_file.write('module load python3\n')                ## Load the python interpreter
+    sh_file.write('python3 -m pip install --upgrade pip\n')
+    
+    ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
+    sh_file.write('pip install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    
     this_file_path = os.path.dirname(os.path.realpath(__file__))
-    sh_file.write('python '+this_file_path+'/ApplyModelJob.py '+datasetFilename+" "+full_path+" "+class_label+" "+instance_label+" "+str(categorical_cutoff)+" "+str(sig_cutoff)+" "+str(cv_partitions)+" "+scale_data+" "+impute_data+" "+
+    sh_file.write('srun python3 '+this_file_path+'/ApplyModelJob.py '+datasetFilename+" "+full_path+" "+class_label+" "+instance_label+" "+str(categorical_cutoff)+" "+str(sig_cutoff)+" "+str(cv_partitions)+" "+scale_data+" "+impute_data+" "+
                   primary_metric+" "+dataset_for_rep+" "+match_label+" "+plot_ROC+" "+plot_PRC+" "+plot_metric_boxplots+" "+export_feature_correlations+" "+jupyterRun+" "+multi_impute+'\n')
     sh_file.close()
-    os.system('bsub < ' + job_name)
+    os.system('sbatch < ' + job_name)
     pass
 
 if __name__ == '__main__':
