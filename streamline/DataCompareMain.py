@@ -52,6 +52,7 @@ def main(argv):
         job_counter += 1
         if eval(options.run_parallel):
             submitClusterJob(options.output_path+'/'+options.experiment_name,options.reserved_memory,options.maximum_memory,options.queue,sig_cutoff,jupyterRun)
+            submitSlurmClusterJob(options.output_path+'/'+options.experiment_name,options.reserved_memory,options.maximum_memory,options.queue,sig_cutoff,jupyterRun)
         else:
             submitLocalJob(options.output_path+'/'+options.experiment_name,sig_cutoff,jupyterRun)
     else: #run job completion checks
@@ -86,6 +87,43 @@ def submitClusterJob(experiment_path,reserved_memory,maximum_memory,queue,sig_cu
     sh_file.close()
     os.system('bsub < ' + job_name)
     pass
+  
+  
+  
+  
+def submitSlurmClusterJob(experiment_path,reserved_memory,maximum_memory,queue,sig_cutoff,jupyterRun):
+    """ Runs DataCompareJob.py once. Runs on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
+    job_ref = str(time.time())
+    job_name = experiment_path + '/jobs/P7_' + job_ref + '_run.sh'
+    sh_file = open(job_name,'w')
+    sh_file.write('#!/bin/bash\n')
+    sh_file.write('#SBATCH --job-name '+job_ref+'\n')    ## Name of the job
+    # --licenses=[license_spec]                          ## Equivalent to the -R flag in LFS
+    sh_file.write('#SBATCH --output=slurm_output.out\n') ## Output File
+    sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
+    sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
+    sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P7_'+job_ref+'.o\n')
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P7_'+job_ref+'.e\n')
+    sh_file.write('module load python3\n')                ## Load the python interpreter
+    sh_file.write('python3 -m pip install --upgrade pip\n')
+    ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
+    sh_file.write('pip install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    
+    this_file_path = os.path.dirname(os.path.realpath(__file__))
+    sh_file.write('srun python3 ' + this_file_path + '/DataCompareJob.py ' + experiment_path +" "+ str(sig_cutoff)+" "+ str(jupyterRun)+ '\n')
+    sh_file.close()
+    os.system('sbatch < ' + job_name)
+    pass
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
