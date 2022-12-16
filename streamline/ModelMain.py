@@ -199,7 +199,8 @@ def main(argv):
                     algNoSpace = algorithm.replace(" ", "_")
                     job_counter += 1
                     if eval(options.run_parallel):
-                        submitClusterJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,options.output_path+'/'+options.experiment_name,cvCount,filter_poor_features,options.reserved_memory,options.maximum_memory,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.queue,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
+                        #submitClusterJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,options.output_path+'/'+options.experiment_name,cvCount,filter_poor_features,options.reserved_memory,options.maximum_memory,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.queue,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
+                        submitSlurmClusterJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,options.output_path+'/'+options.experiment_name,cvCount,filter_poor_features,options.reserved_memory,options.maximum_memory,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.queue,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
                     else:
                         submitLocalJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,cvCount,filter_poor_features,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
 
@@ -286,7 +287,6 @@ def main(argv):
                         if eval(options.run_parallel):
                             job_counter += 1
                             submitSlurmClusterJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,options.output_path+'/'+options.experiment_name,cv,filter_poor_features,options.reserved_memory,options.maximum_memory,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.queue,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
-
                             #submitClusterJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,options.output_path+'/'+options.experiment_name,cv,filter_poor_features,options.reserved_memory,options.maximum_memory,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.queue,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
                         else:
                             submitLocalJob(algNoSpace,train_file_path,test_file_path,full_path,options.n_trials,options.timeout,options.lcs_timeout,options.export_hyper_sweep_plots,instance_label,class_label,random_state,cv,filter_poor_features,options.do_lcs_sweep,options.nu,options.iterations,options.N,options.training_subsample,options.use_uniform_FI,options.primary_metric,algAbrev,jupyterRun)
@@ -322,10 +322,6 @@ def submitClusterJob(algNoSpace,train_file_path,test_file_path,full_path,n_trial
     pass
   
   
-  
-  
-  
-  
 def submitSlurmClusterJob(algNoSpace,train_file_path,test_file_path,full_path,n_trials,timeout,lcs_timeout,export_hyper_sweep_plots,instance_label,class_label,random_state,experiment_path,cvCount,filter_poor_features,reserved_memory,maximum_memory,do_lcs_sweep,nu,iterations,N,training_subsample,queue,use_uniform_FI,primary_metric,algAbrev,jupyterRun):
     """ Runs ModelJob.py once for each combination of cv dataset (for each original target dataset) and ML modeling algorithm. Runs in parallel on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
     job_ref = str(time.time())
@@ -338,13 +334,14 @@ def submitSlurmClusterJob(algNoSpace,train_file_path,test_file_path,full_path,n_
     sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
     sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
     sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
-    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P3_'+job_ref+'.o\n')         ## Send standard output to file path
-    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P3_'+job_ref+'.e\n')         ## Send standard error to file path
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P5_'+job_ref+'.o\n')         ## Send standard output to file path
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P5_'+job_ref+'.e\n')         ## Send standard error to file path
     
     sh_file.write('module load python3\n')                ## Load the python interpreter
+    sh_file.write('python3 -m pip install --upgrade pip\n')
+
     ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
     sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
-    
 
     this_file_path = os.path.dirname(os.path.realpath(__file__))
     sh_file.write('srun python3 '+this_file_path+'/ModelJob.py '+algNoSpace+" "+train_file_path+" "+test_file_path+" "+full_path+" "+
