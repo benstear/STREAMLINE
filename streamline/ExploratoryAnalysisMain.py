@@ -183,8 +183,6 @@ def submitClusterJob(dataset_path,experiment_path,cv_partitions,partition_method
     pass
   
   
-  
-  
 def submitSlurmClusterJob(dataset_path,experiment_path,cv_partitions,partition_method,categorical_cutoff,export_feature_correlations,export_univariate_plots,class_label,instance_label,match_label,random_state,reserved_memory,maximum_memory,queue,ignore_features_path,categorical_feature_path,sig_cutoff,jupyterRun):
     """ Runs ExploratoryAnalysisJob.py on each dataset in dataset_path in parallel on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
     job_ref = str(time.time())
@@ -197,10 +195,11 @@ def submitSlurmClusterJob(dataset_path,experiment_path,cv_partitions,partition_m
     sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
     sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
     sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
-    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P3_'+job_ref+'.o\n')         ## Send standard output to file path
-    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P3_'+job_ref+'.e\n')         ## Send standard error to file path
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P1_'+job_ref+'.o\n')         ## Send standard output to file path
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P1_'+job_ref+'.e\n')         ## Send standard error to file path
     sh_file.write('module load python3\n')                ## Load the python interpreter
-    sh_file.write('pip3 install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    sh_file.write('python3 -m pip install --upgrade pip\n')
+    sh_file.write('pip install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
 
     this_file_path = os.path.dirname(os.path.realpath(__file__))
     sh_file.write('srun python3 '+this_file_path+'/ExploratoryAnalysisJob.py '+dataset_path+" "+experiment_path+" "+str(cv_partitions)+" "+partition_method+" "+str(categorical_cutoff)+
