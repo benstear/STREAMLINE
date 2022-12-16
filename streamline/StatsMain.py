@@ -88,7 +88,8 @@ def main(argv):
                 os.mkdir(full_path+'/model_evaluation/GP_Viz')
             job_counter += 1
             if eval(options.run_parallel):
-                submitClusterJob(full_path,options.plot_ROC,options.plot_PRC,options.plot_FI_box,class_label,instance_label,options.output_path+'/'+options.experiment_name,cv_partitions,scale_data,options.reserved_memory,options.maximum_memory,options.queue,options.plot_metric_boxplots,primary_metric,options.top_model_features,sig_cutoff,options.metric_weight,jupyterRun)
+                #submitClusterJob(full_path,options.plot_ROC,options.plot_PRC,options.plot_FI_box,class_label,instance_label,options.output_path+'/'+options.experiment_name,cv_partitions,scale_data,options.reserved_memory,options.maximum_memory,options.queue,options.plot_metric_boxplots,primary_metric,options.top_model_features,sig_cutoff,options.metric_weight,jupyterRun)
+                submitSlurmClusterJob(full_path,options.plot_ROC,options.plot_PRC,options.plot_FI_box,class_label,instance_label,options.output_path+'/'+options.experiment_name,cv_partitions,scale_data,options.reserved_memory,options.maximum_memory,options.queue,options.plot_metric_boxplots,primary_metric,options.top_model_features,sig_cutoff,options.metric_weight,jupyterRun)
             else:
                 submitLocalJob(full_path,options.plot_ROC,options.plot_PRC,options.plot_FI_box,class_label,instance_label,cv_partitions,scale_data,options.plot_metric_boxplots,primary_metric,options.top_model_features,sig_cutoff,options.metric_weight,jupyterRun)
 
@@ -162,5 +163,31 @@ def submitClusterJob(full_path,plot_ROC,plot_PRC,plot_FI_box,class_label,instanc
     os.system('bsub < ' + job_name)
     pass
 
+  
+def submitSlurmClusterJob(full_path,plot_ROC,plot_PRC,plot_FI_box,class_label,instance_label,experiment_path,cv_partitions,scale_data,reserved_memory,maximum_memory,queue,plot_metric_boxplots,primary_metric,top_model_features,sig_cutoff,metric_weight,jupyterRun):
+    """ Runs StatsJob.py once for each of the original target datasets (all CV datasets analyzed at once). Runs in parallel on a linux-based computing cluster that uses an IBM Spectrum LSF for job scheduling."""
+    job_ref = str(time.time())
+    job_name = experiment_path + '/jobs/P6_' + job_ref + '_run.sh'
+    sh_file = open(job_name,'w')
+    sh_file.write('#!/bin/bash\n')
+    sh_file.write('#SBATCH --job-name '+job_ref+'\n')    ## Name of the job
+    # --licenses=[license_spec]                          ## Equivalent to the -R flag in LFS
+    sh_file.write('#SBATCH --output=slurm_output.out\n') ## Output File
+    sh_file.write('#SBATCH --time=10:00\n')              ## Job Duration
+    sh_file.write('#SBATCH --ntasks=1\n')                ## Number of tasks (analyses) to run
+    sh_file.write('#SBATCH --cpus-per-task=1\n')         ## The number of threads the code will use
+    sh_file.write('#SBATCH -o ' + experiment_path+'/logs/P6_'+job_ref+'.o\n')
+    sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P6_'+job_ref+'.e\n')
+
+    sh_file.write('module load python3\n')                ## Load the python interpreter
+    sh_file.write('python3 -m pip install --upgrade pip\n')
+    ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
+    sh_file.write('pip install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    
+    this_file_path = os.path.dirname(os.path.realpath(__file__))
+    sh_file.write('srun python3 '+this_file_path+'/StatsJob.py '+full_path+" "+plot_ROC+" "+plot_PRC+" "+plot_FI_box+" "+class_label+" "+instance_label+" "+str(cv_partitions)+" "+scale_data+" "+str(plot_metric_boxplots)+" "+str(primary_metric)+" "+str(top_model_features)+" "+str(sig_cutoff)+" "+str(metric_weight)+" "+str(jupyterRun)+'\n')
+    sh_file.close()
+    os.system('sbatch < ' + job_name)
+    pass
 if __name__ == '__main__':
     sys.exit(main(sys.argv))
