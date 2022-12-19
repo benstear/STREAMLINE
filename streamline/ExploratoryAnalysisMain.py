@@ -199,7 +199,7 @@ def submitSlurmClusterJob(dataset_path,experiment_path,cv_partitions,partition_m
     sh_file.write('#SBATCH -e ' + experiment_path+'/logs/P1_'+job_ref+'.e\n')         ## Send standard error to file path
     sh_file.write('module load python3\n')                ## Load the python interpreter
     sh_file.write('python3 -m pip install --upgrade pip\n')
-    sh_file.write('pip install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    sh_file.write('pip install --user seaborn skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
 
     this_file_path = os.path.dirname(os.path.realpath(__file__))
     sh_file.write('srun python3 '+this_file_path+'/ExploratoryAnalysisJob.py '+dataset_path+" "+experiment_path+" "+str(cv_partitions)+" "+partition_method+" "+str(categorical_cutoff)+
