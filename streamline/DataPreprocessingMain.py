@@ -79,7 +79,7 @@ def main(argv):
                 job_counter += 1
                 cv_test_path = cv_train_path.replace("Train.csv","Test.csv")
                 if eval(options.run_parallel):
-                    submitClusterJob(cv_train_path,cv_test_path,options.output_path+'/'+options.experiment_name,options.scale_data,options.impute_data,options.overwrite_cv,categorical_cutoff,class_label,instance_label,random_state,options.reserved_memory,options.maximum_memory,options.queue,options.multi_impute,jupyterRun)
+                    #submitClusterJob(cv_train_path,cv_test_path,options.output_path+'/'+options.experiment_name,options.scale_data,options.impute_data,options.overwrite_cv,categorical_cutoff,class_label,instance_label,random_state,options.reserved_memory,options.maximum_memory,options.queue,options.multi_impute,jupyterRun)
                     submitSlurmClusterJob(cv_train_path,cv_test_path,options.output_path+'/'+options.experiment_name,options.scale_data,options.impute_data,options.overwrite_cv,categorical_cutoff,class_label,instance_label,random_state,options.reserved_memory,options.maximum_memory,options.queue,options.multi_impute,jupyterRun)
                 else:
                     submitLocalJob(cv_train_path,cv_test_path,options.output_path+'/'+options.experiment_name,options.scale_data,options.impute_data,options.overwrite_cv,categorical_cutoff,class_label,instance_label,random_state,options.multi_impute,jupyterRun)
