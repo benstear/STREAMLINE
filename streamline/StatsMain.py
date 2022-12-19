@@ -182,7 +182,7 @@ def submitSlurmClusterJob(full_path,plot_ROC,plot_PRC,plot_FI_box,class_label,in
     sh_file.write('module load python3\n')                ## Load the python interpreter
     sh_file.write('python3 -m pip install --upgrade pip\n')
     ###  SBATCH --mem-per-cpu=100M     ## Real memory(MB) per CPU required by the job
-    sh_file.write('pip install --user skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
+    sh_file.write('pip install --user Ipython skrebate==0.7 xgboost lightgbm catboost gplearn scikit-eLCS scikit-XCS scikit-ExSTraCS optuna==2.0.0 plotly kaleido fpdf scipy\n')
     
     this_file_path = os.path.dirname(os.path.realpath(__file__))
     sh_file.write('srun python3 '+this_file_path+'/StatsJob.py '+full_path+" "+plot_ROC+" "+plot_PRC+" "+plot_FI_box+" "+class_label+" "+instance_label+" "+str(cv_partitions)+" "+scale_data+" "+str(plot_metric_boxplots)+" "+str(primary_metric)+" "+str(top_model_features)+" "+str(sig_cutoff)+" "+str(metric_weight)+" "+str(jupyterRun)+'\n')
